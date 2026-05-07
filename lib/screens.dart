@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'alumni_screens.dart';
 import 'theme.dart';
 
 class UcisMobilePrototype extends StatefulWidget {
@@ -11,43 +12,101 @@ class UcisMobilePrototype extends StatefulWidget {
 
 class _UcisMobilePrototypeState extends State<UcisMobilePrototype> {
   int _page = -2;
+  bool _alumniSessionWarningShown = false;
 
   void _openStaffLogin() => setState(() => _page = -1);
   void _openStaffHome() => setState(() => _page = 0);
-  void _logout() => setState(() => _page = -2);
+  void _openAlumniLogin() => setState(() => _page = -3);
+  void _openAlumniHome() {
+    setState(() => _page = alumniHomePage);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showAlumniSessionWarning());
+  }
+
+  void _logout() => setState(() {
+        _page = -2;
+        _alumniSessionWarningShown = false;
+      });
+
+  void _showAlumniSessionWarning() {
+    if (_alumniSessionWarningShown || !mounted) return;
+    _alumniSessionWarningShown = true;
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Session timeout warning'),
+        content: const Text('For your security, this alumni session will expire in 02:00 if there is no activity.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Stay signed in')),
+          FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Continue')),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final phone = _page == -2
-        ? WelcomeScreen(onStaffLogin: _openStaffLogin)
+        ? WelcomeScreen(onStaffLogin: _openStaffLogin, onAlumniLogin: _openAlumniLogin)
         : _page == -1
             ? StaffLoginScreen(onSignIn: _openStaffHome)
-        : PhoneShell(
-            selectedIndex: _page > 5 ? 0 : _page,
-            onSelect: (index) => setState(() => _page = index),
-            onLogout: _logout,
-            child: switch (_page) {
-              0 => const StaffHomeScreen(),
-              1 => const AnnouncementsScreen(),
-              2 => const ServicesScreen(),
-              3 => const CalendarScreen(),
-              4 => const AiAssistantScreen(),
-              5 => const CampusMapScreen(),
-              _ => const StaffHomeScreen(),
-            },
-          );
+            : _page == -3
+                ? AlumniLoginScreen(
+                    onSignIn: _openAlumniHome,
+                    onRegister: () => setState(() => _page = -4),
+                    onBack: () => setState(() => _page = -2),
+                  )
+                : _page == -4
+                    ? AlumniRegistrationScreen(
+                        onSubmit: () => setState(() => _page = -5),
+                        onBack: _openAlumniLogin,
+                      )
+                    : _page == -5
+                        ? AlumniStatusScreen.pending(onAction: () => setState(() => _page = -6))
+                        : _page == -6
+                            ? AlumniStatusScreen.approved(onAction: _openAlumniLogin)
+                            : _page >= alumniHomePage
+                                ? AlumniShell(
+                                    page: _page,
+                                    onOpen: (page) => setState(() => _page = page),
+                                    onLogout: _logout,
+                                  )
+                                : PhoneShell(
+                                    selectedIndex: _page > 5 ? 0 : _page,
+                                    onSelect: (index) => setState(() => _page = index),
+                                    child: switch (_page) {
+                                      0 => StaffHomeScreen(onOpenProfile: () => setState(() => _page = 6)),
+                                      1 => const AnnouncementsScreen(),
+                                      2 => const ServicesScreen(),
+                                      3 => const CalendarScreen(),
+                                      4 => const AiAssistantScreen(),
+                                      5 => const CampusMapScreen(),
+                                      6 => StaffProfileScreen(onLogout: _logout),
+                                      _ => StaffHomeScreen(onOpenProfile: () => setState(() => _page = 6)),
+                                    },
+                                  );
 
     return Scaffold(
       backgroundColor: ucisCanvas,
+      floatingActionButton: _page >= alumniHomePage && _page != alumniAssistantPage
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 72),
+              child: FloatingActionButton(
+                tooltip: 'Open AI assistant',
+                onPressed: () => setState(() => _page = alumniAssistantPage),
+                child: const Icon(Icons.smart_toy_outlined),
+              ),
+            )
+          : null,
       body: SafeArea(child: phone),
     );
   }
 }
 
 class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({super.key, required this.onStaffLogin});
+  const WelcomeScreen({super.key, required this.onStaffLogin, required this.onAlumniLogin});
 
   final VoidCallback onStaffLogin;
+  final VoidCallback onAlumniLogin;
 
   @override
   Widget build(BuildContext context) {
@@ -81,9 +140,11 @@ class WelcomeScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   FilledButton.icon(onPressed: onStaffLogin, icon: const Icon(Icons.badge_outlined), label: const Text('Login as Staff')),
                   const SizedBox(height: 10),
+                  FilledButton.icon(onPressed: onAlumniLogin, icon: const Icon(Icons.workspace_premium_outlined), label: const Text('Login as Alumni')),
+                  const SizedBox(height: 10),
                   OutlinedButton.icon(onPressed: null, icon: const Icon(Icons.school_outlined), label: const Text('Login as Student')),
                   const SizedBox(height: 8),
-                  const Text('Student access is disabled in this build. Staff UI only.', textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: ucisMuted)),
+                  const Text('Student access is disabled in this build. Staff and Alumni UI are available.', textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: ucisMuted)),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(onPressed: null, icon: const Icon(Icons.admin_panel_settings_outlined), label: const Text('Login as Admin')),
                 ],
@@ -134,11 +195,10 @@ class StaffLoginScreen extends StatelessWidget {
 }
 
 class PhoneShell extends StatelessWidget {
-  const PhoneShell({super.key, required this.selectedIndex, required this.onSelect, required this.onLogout, required this.child});
+  const PhoneShell({super.key, required this.selectedIndex, required this.onSelect, required this.child});
 
   final int selectedIndex;
   final ValueChanged<int> onSelect;
-  final VoidCallback onLogout;
   final Widget child;
 
   @override
@@ -148,7 +208,7 @@ class PhoneShell extends StatelessWidget {
       child: Column(
         children: [
           Expanded(child: child),
-          UcisBottomNav(selectedIndex: selectedIndex, onSelect: onSelect, onLogout: onLogout),
+          UcisBottomNav(selectedIndex: selectedIndex, onSelect: onSelect),
         ],
       ),
     );
@@ -156,12 +216,14 @@ class PhoneShell extends StatelessWidget {
 }
 
 class StaffHomeScreen extends StatelessWidget {
-  const StaffHomeScreen({super.key});
+  const StaffHomeScreen({super.key, required this.onOpenProfile});
+
+  final VoidCallback onOpenProfile;
 
   @override
   Widget build(BuildContext context) {
-    return const AppScrollView(
-      header: UcisHeader(
+    return AppScrollView(
+      header: const UcisHeader(
         title: 'Welcome back,\nDr. James Kalolo',
         subtitle: 'Staff     College of ICT',
         leading: 'DJ',
@@ -169,9 +231,9 @@ class StaffHomeScreen extends StatelessWidget {
         trailing: 'J',
       ),
       children: [
-        _AudiencePill(text: 'Lecturer     Computer Engineering and IT'),
-        SizedBox(height: 12),
-        SectionCard(
+        const _AudiencePill(text: 'Lecturer     Computer Engineering and IT'),
+        const SizedBox(height: 12),
+        const SectionCard(
           title: 'Quick Access',
           child: Column(
             children: [
@@ -187,14 +249,14 @@ class StaffHomeScreen extends StatelessWidget {
             ],
           ),
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         Wrap(spacing: 9, runSpacing: 9, children: [
-          MiniAction(icon: Icons.person_outline, title: 'Profile', subtitle: 'Info'),
-          MiniAction(icon: Icons.calendar_month_outlined, title: 'Calendar', subtitle: 'Schedule'),
-          MiniAction(icon: Icons.map_outlined, title: 'Map', subtitle: 'Navigate'),
+          MiniAction(icon: Icons.person_outline, title: 'Profile', subtitle: 'Info', onTap: onOpenProfile),
+          const MiniAction(icon: Icons.calendar_month_outlined, title: 'Calendar', subtitle: 'Schedule'),
+          const MiniAction(icon: Icons.map_outlined, title: 'Map', subtitle: 'Navigate'),
         ]),
-        SizedBox(height: 12),
-        SectionCard(
+        const SizedBox(height: 12),
+        const SectionCard(
           title: 'My Tasks',
           child: Column(
             children: [
@@ -205,6 +267,41 @@ class StaffHomeScreen extends StatelessWidget {
               TaskItem(title: 'Approve consultation slots', status: 'Today', level: 'Normal'),
             ],
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class StaffProfileScreen extends StatelessWidget {
+  const StaffProfileScreen({super.key, required this.onLogout});
+
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppScrollView(
+      header: const UcisHeader(title: 'Profile', subtitle: 'Staff account details', leading: 'DJ'),
+      children: [
+        const SectionCard(
+          title: 'Dr. James Kalolo',
+          subtitle: 'Lecturer     Computer Engineering and IT',
+          child: Column(
+            children: [
+              StaffProfileRow(icon: Icons.badge_outlined, title: 'Staff ID', value: 'UDSM-STAFF-2048'),
+              SizedBox(height: 10),
+              StaffProfileRow(icon: Icons.email_outlined, title: 'Email', value: 'james.kalolo@udsm.ac.tz'),
+              SizedBox(height: 10),
+              StaffProfileRow(icon: Icons.school_outlined, title: 'College', value: 'College of ICT'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: onLogout,
+          icon: const Icon(Icons.logout),
+          label: const Text('Logout'),
+          style: FilledButton.styleFrom(backgroundColor: ucisRed),
         ),
       ],
     );
@@ -524,25 +621,61 @@ class QuickTile extends StatelessWidget {
 }
 
 class MiniAction extends StatelessWidget {
-  const MiniAction({super.key, required this.icon, required this.title, required this.subtitle});
+  const MiniAction({super.key, required this.icon, required this.title, required this.subtitle, this.onTap});
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: 112,
-      child: UcisCard(
-        child: Column(
-          children: [
-            Icon(icon, color: ucisBlue, size: 18),
-            const SizedBox(height: 5),
-            Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: ucisInk)),
-            Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(fontSize: 9, color: ucisMuted)),
-          ],
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: UcisCard(
+          child: Column(
+            children: [
+              Icon(icon, color: ucisBlue, size: 18),
+              const SizedBox(height: 5),
+              Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: ucisInk)),
+              Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(fontSize: 9, color: ucisMuted)),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class StaffProfileRow extends StatelessWidget {
+  const StaffProfileRow({super.key, required this.icon, required this.title, required this.value});
+
+  final IconData icon;
+  final String title;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(border: Border.all(color: ucisLine), borderRadius: BorderRadius.circular(14)),
+      child: Row(
+        children: [
+          Icon(icon, color: ucisBlue, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 10, color: ucisMuted, fontWeight: FontWeight.w800)),
+                Text(value, style: const TextStyle(fontSize: 12, color: ucisInk, fontWeight: FontWeight.w900)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -675,7 +808,10 @@ class EventRow extends StatelessWidget {
           children: [
             const Icon(Icons.calendar_month_outlined, color: ucisBlue, size: 18),
             const SizedBox(width: 10),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: ucisInk)), Text(meta, style: const TextStyle(fontSize: 10, color: ucisMuted))])),
+            Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: ucisInk)), Text(meta, style: const TextStyle(fontSize: 10, color: ucisMuted))])),
             BadgePill(text: tag, color: tag == 'Events' ? ucisGold : ucisBlue),
           ],
         ),
@@ -746,7 +882,10 @@ class LocationRow extends StatelessWidget {
           children: [
             const Icon(Icons.location_on, color: Color(0xFFE84C88), size: 18),
             const SizedBox(width: 10),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: ucisInk)), Text(meta, style: const TextStyle(fontSize: 10, color: ucisMuted))])),
+            Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: ucisInk)), Text(meta, style: const TextStyle(fontSize: 10, color: ucisMuted))])),
             const Icon(Icons.chevron_right, color: ucisMuted, size: 18),
           ],
         ),
@@ -794,11 +933,10 @@ class BadgePill extends StatelessWidget {
 }
 
 class UcisBottomNav extends StatelessWidget {
-  const UcisBottomNav({super.key, required this.selectedIndex, required this.onSelect, required this.onLogout});
+  const UcisBottomNav({super.key, required this.selectedIndex, required this.onSelect});
 
   final int selectedIndex;
   final ValueChanged<int> onSelect;
-  final VoidCallback onLogout;
 
   static const _items = [
     (Icons.home_outlined, 'Home'),
@@ -830,19 +968,6 @@ class UcisBottomNav extends StatelessWidget {
                 ),
               ),
             ),
-          Expanded(
-            child: InkWell(
-              onTap: onLogout,
-              child: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.logout, size: 18, color: ucisRed),
-                  SizedBox(height: 3),
-                  Text('Logout', style: TextStyle(fontSize: 9, color: ucisRed, fontWeight: FontWeight.w900)),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );

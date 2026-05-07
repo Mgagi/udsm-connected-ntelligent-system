@@ -1,140 +1,773 @@
-notes
+# UDSM Connected Intelligent System - Staff Mobile UI Code Description
 
-# UDSM Connected Intelligent Initiative
+## Project Summary
 
-## Project Overview
-The **UDSM Connected Intelligent Initiative** is a centralized digital platform designed to integrate and enhance access to academic, administrative, and campus-related services at the University of Dar es Salaam (UDSM).
+This Flutter project implements a mobile staff interface for the UDSM Connected Intelligent System. The current build is focused on staff users only. The app still shows role choices for Staff, Student, and Admin on the first screen, but only Staff login is active. Student and Admin buttons are intentionally disabled for now.
 
-The system aims to simplify how students and staff interact with university services by providing a unified, intelligent, and user-friendly interface.
+The app targets Android and iOS only. The Flutter web target was removed because the requested product is a mobile app, not a website. The UI is based on the PowerPoint prototype style: blue headers, UDSM branding, light grey page background, rounded white cards, small icon buttons, bottom navigation, and staff-focused dashboard content.
 
----
+## Current User Flow
 
-## Problem Statement
-At UDSM, essential services such as academic systems, announcements, campus navigation, and emergency contacts are scattered across multiple platforms including noticeboards, WhatsApp groups, and independent systems like ARIS and Moodle.
+1. The app opens on a role-choice welcome screen.
+2. The user taps `Login as Staff`.
+3. The app opens the staff login screen.
+4. The user taps `Continue`.
+5. The app opens the staff home dashboard.
+6. The user can move between Home, Alerts, Services, Calendar, AI, and Map using the bottom navigation.
+7. The user can tap `Logout` from the bottom navigation.
+8. Logout returns the app to the role-choice welcome screen.
 
-This fragmentation leads to:
-- Difficulty accessing timely and reliable information  
-- Poor user experience due to multiple systems and logins  
-- Challenges in locating campus facilities  
-- Inefficient communication across the university  
+This flow is currently simulated in local widget state. There is no backend authentication yet.
 
-There is a need for a centralized solution that improves accessibility, communication, and service delivery without replacing existing systems.
+## Platform Setup
 
----
+The project keeps these mobile platform folders:
 
-## Objective
-To develop a unified platform that integrates existing university systems and services into a single interface, improving usability, accessibility, and overall campus experience.
+- `android/`: Android native project files.
+- `ios/`: iOS native project files.
 
----
+The `web/` folder was removed. This means the app should be run on Android or iOS targets:
 
-## Core Features
+```sh
+flutter run -d android
+flutter run -d ios
+```
 
-### 1. Centralized Announcements and Notifications
-- Aggregates all official university announcements into one platform  
-- Sends real-time notifications for important updates  
-- Eliminates reliance on informal communication channels  
+## Assets
 
----
+The app uses this asset:
 
-### 2. Unified Access to Academic Systems
-- Provides a single access point to:
-  - ARIS (Academic Registration Information System)  
-  - Moodle (Learning Management System)  
-  - e-Library  
-  - Online Application System (OAS)  
-- Reduces the need to switch between multiple platforms  
+- `assets/images/udsm_logo.png`
 
----
+This image is the UDSM crest used on the welcome screen. It is registered in `pubspec.yaml`:
 
-### 3. Personalized User Dashboard
-- Secure login for each user  
-- Displays:
-  - Announcements  
-  - Academic alerts  
-  - Deadlines  
-  - Quick access to frequently used services  
+```yaml
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/udsm_logo.png
+```
 
----
+Without this registration, `Image.asset('assets/images/udsm_logo.png')` would fail at runtime.
 
-### 4. Campus Navigation System
-- UDSM-specific digital map  
-- Helps users locate:
-  - Lecture halls  
-  - Offices  
-  - Hostels  
-  - Key facilities  
-- Improves navigation within campus  
+## `lib/main.dart`
 
----
+This file is the app entry point.
 
-### 5. Emergency Support System
-- Quick access to campus security and health services  
-- Improves response during emergencies  
+### Imports
 
----
+```dart
+import 'package:flutter/material.dart';
 
-### 6. Digital Almanac and Events Calendar
-- Centralized academic calendar  
-- Displays:
-  - Academic schedules  
-  - Important deadlines  
-  - University events  
+import 'screens.dart';
+import 'theme.dart';
+```
 
----
+- `material.dart` provides Flutter Material widgets such as `MaterialApp`.
+- `screens.dart` contains the app UI screens and widgets.
+- `theme.dart` contains the UCIS color palette and Material theme.
 
-## Extended Features
+### `main()`
 
-### 7. AI-Based Virtual Assistant
-- Integrated via external API  
-- Provides instant responses to user queries such as:
-  - Academic procedures  
-  - Deadlines  
-  - Campus directions  
-  - General university information  
-- Reduces workload on administrative offices  
+```dart
+void main() {
+  runApp(const UcisAdminApp());
+}
+```
 
----
+`main()` is the first function Flutter runs. It starts the app by mounting `UcisAdminApp`.
 
-### 8. Campus Life and Events Management
-- Central platform for student activities and events  
-- Provides information about:
-  - Clubs and organizations  
-  - Extracurricular opportunities  
+### `UcisAdminApp`
 
----
+`UcisAdminApp` is a `StatelessWidget` because the app-level wrapper does not hold mutable state. It returns a `MaterialApp`.
 
-### 9. Mentorship and Alumni Connection
-- Connects students with alumni and academic staff  
-- Supports:
-  - Career guidance  
-  - Academic mentorship  
-  - Professional networking  
+Important properties:
 
----
+- `title: 'UDSM Mobile Application'`: app title used by the platform.
+- `debugShowCheckedModeBanner: false`: removes the red debug banner.
+- `theme: buildUcisTheme()`: applies the custom UCIS theme from `theme.dart`.
+- `home: const UcisMobilePrototype()`: sets the first rendered widget to the mobile prototype in `screens.dart`.
 
-### 10. Project and Collaboration Finder
-- Enables students to:
-  - Share project ideas  
-  - Find collaborators  
-  - Form teams for academic and innovation projects  
+## `lib/theme.dart`
 
----
+This file defines the visual design system.
 
-## System Approach
-- The system integrates existing platforms rather than replacing them  
-- Focuses on usability, accessibility, and efficiency  
-- Designed as a scalable solution for digital transformation within the university  
+### Color Constants
 
----
+The app uses named color constants so the same colors can be reused everywhere:
 
-## Expected Impact
-- Improved access to university services  
-- Enhanced communication across students and staff  
-- Better user experience through centralization  
-- Increased efficiency in service delivery  
-- Strengthened academic and collaborative engagement  
+- `ucisBlue`: main brand blue used in headers, primary buttons, active navigation, and icons.
+- `ucisBlueDark`: darker blue reserved for deeper brand states.
+- `ucisInk`: dark text color.
+- `ucisMuted`: secondary text color.
+- `ucisLine`: border color for cards and inputs.
+- `ucisCanvas`: page background color.
+- `ucisGold`: warning/medium-priority accent.
+- `ucisGreen`: success/connected/normal accent.
+- `ucisRed`: error/high-priority/logout accent.
 
----
+### `buildUcisTheme()`
 
-## Conclusion
-The UDSM Connected Intelligent Initiative provides a practical and scalable solution to the challenges caused by fragmented systems within the university. By centralizing services and enhancing accessibility, the platform significantly improves how users interact with the UDSM digital ecosystem.
+This function returns a `ThemeData` object for the entire app.
+
+It builds a `ColorScheme` using `ColorScheme.fromSeed`, with:
+
+- `primary: ucisBlue`
+- `secondary: ucisGold`
+- `tertiary: ucisGreen`
+- `error: ucisRed`
+- `surface: Colors.white`
+- `brightness: Brightness.light`
+
+The returned `ThemeData` sets:
+
+- `useMaterial3: true`: enables Material 3 styling.
+- `scaffoldBackgroundColor: ucisCanvas`: default background.
+- `fontFamily: 'Roboto'`: app font.
+- `textTheme`: consistent headline, title, body, and label styles.
+- `inputDecorationTheme`: rounded white text fields with grey borders and blue focus borders.
+- `filledButtonTheme`: blue filled buttons with white text and rounded corners.
+- `outlinedButtonTheme`: white/outlined buttons with dark text and rounded corners.
+
+This keeps the visual style consistent without repeating button and input styling on every screen.
+
+## `lib/screens.dart`
+
+This is the main UI file. It contains both the app flow and all screen widgets.
+
+### Top-Level App State: `UcisMobilePrototype`
+
+`UcisMobilePrototype` is a `StatefulWidget` because it controls which screen is currently visible.
+
+Its state class `_UcisMobilePrototypeState` stores:
+
+```dart
+int _page = -2;
+```
+
+The `_page` value acts as a simple navigation state machine:
+
+- `-2`: role-choice welcome screen.
+- `-1`: staff login screen.
+- `0`: staff home dashboard.
+- `1`: announcements screen.
+- `2`: services screen.
+- `3`: calendar screen.
+- `4`: AI assistant screen.
+- `5`: campus map screen.
+
+Helper methods update this state:
+
+- `_openStaffLogin()` sets `_page` to `-1`.
+- `_openStaffHome()` sets `_page` to `0`.
+- `_logout()` sets `_page` to `-2`.
+
+Each method calls `setState`, which tells Flutter to rebuild the UI with the new screen.
+
+### `build()` in `_UcisMobilePrototypeState`
+
+The `build` method decides which screen to show:
+
+- If `_page == -2`, show `WelcomeScreen`.
+- If `_page == -1`, show `StaffLoginScreen`.
+- Otherwise, show `PhoneShell` containing one of the signed-in staff pages.
+
+The signed-in page is selected using a Dart `switch` expression:
+
+- `0 => StaffHomeScreen`
+- `1 => AnnouncementsScreen`
+- `2 => ServicesScreen`
+- `3 => CalendarScreen`
+- `4 => AiAssistantScreen`
+- `5 => CampusMapScreen`
+- default returns `StaffHomeScreen`
+
+The root widget is:
+
+```dart
+Scaffold(
+  backgroundColor: ucisCanvas,
+  body: SafeArea(child: phone),
+)
+```
+
+`SafeArea` prevents the UI from going under the device notch, status bar, or system gesture areas. There is no external phone mockup frame anymore, so the app fills the actual device screen.
+
+## Authentication and Role Screens
+
+### `WelcomeScreen`
+
+`WelcomeScreen` is the first screen. It receives:
+
+```dart
+final VoidCallback onStaffLogin;
+```
+
+This callback is called when the user taps `Login as Staff`.
+
+The screen has two main parts:
+
+1. A blue branded header.
+2. A white rounded login-choice card.
+
+The header includes:
+
+- `UdsLogo`
+- `UDSM MOBILE APPLICATION`
+- `University of Dar es Salaam`
+- `Connected Intelligent System`
+
+The card includes:
+
+- Title: `Welcome`
+- Instruction text: `Choose your account type to continue.`
+- Active button: `Login as Staff`
+- Disabled button: `Login as Student`
+- Helper text: `Student access is disabled in this build. Staff UI only.`
+- Disabled button: `Login as Admin`
+
+Student and Admin buttons use `onPressed: null`, which makes Flutter render them as disabled.
+
+### `StaffLoginScreen`
+
+`StaffLoginScreen` is the staff sign-in form. It receives:
+
+```dart
+final VoidCallback onSignIn;
+```
+
+This callback opens the staff dashboard.
+
+The screen uses:
+
+- `UcisHeader` with title `Staff Login`.
+- A `UcisCard` containing the form.
+- A text field for staff email or ID.
+- A password text field with `obscureText: true`.
+- Helper text explaining staff access.
+- A `Continue` button.
+
+This is currently a prototype screen, so it does not validate credentials. Tapping `Continue` simulates successful login.
+
+## Signed-In Layout
+
+### `PhoneShell`
+
+`PhoneShell` wraps all signed-in staff pages.
+
+It receives:
+
+- `selectedIndex`: the currently selected bottom navigation index.
+- `onSelect`: callback for changing pages.
+- `onLogout`: callback for logging out.
+- `child`: the active page widget.
+
+Its layout is:
+
+```dart
+Column(
+  children: [
+    Expanded(child: child),
+    UcisBottomNav(...)
+  ],
+)
+```
+
+`Expanded` makes the active page take all available space above the bottom navigation.
+
+## Staff Pages
+
+### `StaffHomeScreen`
+
+This is the staff dashboard.
+
+It uses `AppScrollView`, which gives it:
+
+- A fixed top header.
+- A scrollable content area.
+
+The header is:
+
+- Title: `Welcome back, Dr. James Kalolo`
+- Subtitle: `Staff     College of ICT`
+- Leading initials: `DJ`
+- Badge: `2`
+- Trailing button: `J`
+
+The content includes:
+
+1. `_AudiencePill`
+   - Shows `Lecturer     Computer Engineering and IT`.
+
+2. `SectionCard` titled `Quick Access`
+   - Contains four `QuickTile` widgets:
+     - `LMS` / `Teaching`
+     - `FYP` / `Review`
+     - `Students` / `Manage`
+     - `Grading` / `Submit`
+
+3. `Wrap` of quick mini actions
+   - `Profile`
+   - `Calendar`
+   - `Map`
+
+4. `SectionCard` titled `My Tasks`
+   - Contains three `TaskItem` widgets:
+     - `Submit Semester I Grades`, status `Pending`, level `High`
+     - `Review FYP Proposals`, status `In Progress`, level `Medium`
+     - `Approve consultation slots`, status `Today`, level `Normal`
+
+`TaskItem` colors priority badges using level:
+
+- `High`: red.
+- `Medium`: gold.
+- Anything else: green.
+
+### `AnnouncementsScreen`
+
+This screen shows staff alerts and academic updates.
+
+It contains:
+
+- Header: `Announcements`
+- Search field
+- Horizontal filter row
+- Announcement cards
+
+Filters:
+
+- `All`
+- `Academic`
+- `Events`
+- `Emergency`
+- `General`
+
+Announcement examples:
+
+- `Semester II Examination Timetable Released`
+- `FYP proposal review deadline`
+- `Senate results submission window`
+
+Each announcement is rendered by `AnnouncementItem`.
+
+### `ServicesScreen`
+
+This screen shows staff academic systems.
+
+It contains three `ServiceCard` widgets:
+
+1. `ARIS`
+   - Body: manage marks, class lists, course allocations, and academic records.
+   - Chips: Class Lists, Marks, Courses, Reports.
+
+2. `LMS`
+   - Body: upload course materials, assignments, discussions, and online lecture resources.
+   - Chips: Courses, Assignments, Resources, Forums.
+
+3. `FYP Portal`
+   - Body: review student submissions, supervisor comments, and project progress.
+   - Chips: Submissions, Supervision, Review.
+
+Each service card also shows a green `Connected` badge and an `Open ... >` button.
+
+### `CalendarScreen`
+
+This screen shows academic calendar items.
+
+It uses:
+
+- Header: `Calendar`
+- `SectionCard` titled `March 2026`
+- Three `EventRow` items:
+  - Faculty Meeting
+  - UDSM Career Fair 2026
+  - Semester II Exams Start
+
+Each event row contains:
+
+- Calendar icon.
+- Event title.
+- Event metadata.
+- Category badge.
+
+### `AiAssistantScreen`
+
+This screen shows a staff-oriented AI assistant prototype.
+
+It contains prompt chips for common staff questions:
+
+- How do I submit semester grades?
+- Show my assigned FYP reviews.
+- What classes do I teach today?
+- How do I approve consultation slots?
+- Where is the Health Center?
+- FYP supervision guidelines?
+
+It also contains:
+
+- A larger empty text area for conversation output.
+- A message input field.
+- A disabled `Send` button.
+
+The send button is disabled because no AI backend is connected yet.
+
+### `CampusMapScreen`
+
+This screen provides a campus map/search prototype.
+
+It contains:
+
+- Header: `Campus Map`
+- Search field
+- `MapPreview`
+- Filter row
+- Office/location list
+
+Locations:
+
+- College of ICT (CoICT)
+- Main Library
+- Health Center
+- Nkrumah Hall
+
+Each location is rendered by `LocationRow`.
+
+## Shared Layout Widgets
+
+### `UcisHeader`
+
+This is the blue top header used by most screens.
+
+Parameters:
+
+- `title`: main title.
+- `subtitle`: smaller subtitle.
+- `leading`: text shown inside the left circular avatar.
+- `badge`: optional red badge.
+- `trailing`: optional small trailing label.
+- `actions`: optional list of icons.
+
+The header uses:
+
+- Blue background.
+- Left `CircleAvatar`.
+- Title and subtitle column.
+- Optional `HeaderButton` for badges/trailing labels.
+- Optional `HeaderIcon` widgets.
+
+### `AppScrollView`
+
+This creates a consistent page structure:
+
+```dart
+Column(
+  children: [
+    header,
+    Expanded(
+      child: SingleChildScrollView(...)
+    )
+  ]
+)
+```
+
+The header remains at the top. The page content scrolls below it. This prevents long screens from overflowing on smaller phones.
+
+### `UcisCard`
+
+This is the base rounded white card component.
+
+It applies:
+
+- White background.
+- `16` padding.
+- `18` corner radius.
+- Light grey border.
+- Soft shadow.
+
+Most panels, lists, and cards are built from `UcisCard`.
+
+### `SectionCard`
+
+This is a titled card wrapper. It accepts:
+
+- `title`
+- optional `subtitle`
+- `child`
+- optional `trailing`
+
+It is used for dashboard sections such as `Quick Access`, `My Tasks`, and calendar panels.
+
+### `UdsLogo`
+
+This renders the UDSM crest:
+
+```dart
+Image.asset('assets/images/udsm_logo.png')
+```
+
+Parameters:
+
+- `size`: controls width.
+- `compact`: when true, also forces height to the same size.
+
+### `HeaderButton`
+
+This renders small rounded text buttons in the header, such as:
+
+- Notification count badges.
+- Small profile labels.
+
+If a custom color is passed, it uses that color. Otherwise, it uses semi-transparent white.
+
+### `HeaderIcon`
+
+This renders icon buttons used in the header, for example the back and close icons on the staff login screen.
+
+In the current prototype these icons are visual only and do not have tap handlers.
+
+### `_AudiencePill`
+
+This is a small blue pill that identifies the current staff audience or role.
+
+Current text:
+
+```text
+Lecturer     Computer Engineering and IT
+```
+
+The underscore means the widget is private to `screens.dart`.
+
+### `QuickTile`
+
+This renders the square quick-access items on the staff home screen.
+
+Parameters:
+
+- `icon`
+- `title`
+- `subtitle`
+
+It uses fixed height, border, rounded corners, centered icon, title, and subtitle.
+
+### `MiniAction`
+
+This renders smaller shortcut cards, currently used for:
+
+- Profile
+- Calendar
+- Map
+
+It uses `UcisCard` internally and fixed width so the `Wrap` layout can place actions cleanly across the screen.
+
+### `TaskItem`
+
+This renders staff tasks in the dashboard.
+
+Parameters:
+
+- `title`
+- `status`
+- `level`
+
+The `level` controls badge color:
+
+- `High`: red.
+- `Medium`: gold.
+- Default: green.
+
+This gives staff an immediate visual indication of task priority.
+
+### `AnnouncementItem`
+
+This renders one announcement card.
+
+Parameters:
+
+- `title`
+- `tag`
+- `level`
+- `time`
+
+It uses a `Wrap` for badges and time so the content can move to a new line instead of overflowing on narrow screens.
+
+The body text is currently static:
+
+```text
+Official academic update for staff action, teaching coordination, and student guidance.
+```
+
+### `ServiceCard`
+
+This renders one staff service integration.
+
+Parameters:
+
+- `title`
+- `body`
+- `chips`
+
+It shows:
+
+- Service icon.
+- Service title.
+- Green `Connected` badge.
+- Description body.
+- Feature chips.
+- `Open ... >` button.
+
+The button is visual for now and has an empty callback.
+
+### `EventRow`
+
+This renders one calendar event.
+
+Parameters:
+
+- `title`
+- `meta`
+- `tag`
+
+It shows:
+
+- Calendar icon.
+- Event title.
+- Event metadata.
+- Category badge.
+
+If the tag is `Events`, it uses gold. Otherwise, it uses blue.
+
+### `PromptChip`
+
+This renders a suggested AI assistant prompt.
+
+It is an aligned rounded chip with text, white background, and border.
+
+### `MapPreview`
+
+This renders a placeholder campus map preview.
+
+It uses:
+
+- Fixed height.
+- Rounded border.
+- Light blue/green gradient.
+- Text:
+  - `UDSM Main Campus`
+  - `Dar es Salaam, Tanzania`
+
+No real map API is connected yet.
+
+### `LocationRow`
+
+This renders a campus location row.
+
+Parameters:
+
+- `title`
+- `meta`
+
+It shows:
+
+- Pink location icon.
+- Location title.
+- Location metadata.
+- Chevron icon.
+
+### `FilterRow`
+
+This renders a horizontally scrollable row of filter badges.
+
+The first filter is shown as active blue. Other filters use pale grey styling.
+
+The horizontal scroll prevents overflow when many filters exist.
+
+### `BadgePill`
+
+This is the reusable status/category badge.
+
+Parameters:
+
+- `text`
+- `color`
+- `pale`
+
+If `pale` is false, it uses a lightly transparent version of the provided color. If `pale` is true, it uses a grey background and muted text.
+
+This widget is reused for filters, priorities, service chips, category tags, and status indicators.
+
+### `UcisBottomNav`
+
+This is the signed-in bottom navigation.
+
+It receives:
+
+- `selectedIndex`
+- `onSelect`
+- `onLogout`
+
+Navigation items:
+
+- Home
+- Alerts
+- Services
+- Calendar
+- AI
+- Map
+- Logout
+
+The first six items call `onSelect(i)` to change `_page`. The Logout item calls `onLogout`, which resets `_page` to `-2` and returns to the role-choice screen.
+
+The selected item is blue. Unselected items are muted grey. Logout is always red to show it is a session action.
+
+## `test/widget_test.dart`
+
+The widget test verifies the important staff flow.
+
+Test name:
+
+```text
+staff can choose staff login and open the staff dashboard
+```
+
+The test performs these steps:
+
+1. Renders `UcisAdminApp`.
+2. Confirms the welcome screen exists.
+3. Confirms `Login as Staff` and `Login as Student` are visible.
+4. Taps `Login as Staff`.
+5. Confirms `Staff Login` appears.
+6. Taps `Continue`.
+7. Confirms the staff dashboard appears by checking:
+   - `Dr. James Kalolo`
+   - `Quick Access`
+   - `My Tasks`
+8. Taps `Logout`.
+9. Confirms the app returns to `Login as Staff`.
+
+This test protects the main navigation, login, dashboard, and logout behavior from accidental breakage.
+
+## Important Current Limitations
+
+This is still a UI prototype. The following parts are not connected to real services yet:
+
+- Staff authentication.
+- Student/Admin role flows.
+- ARIS/LMS/FYP links.
+- AI assistant backend.
+- Campus map API.
+- Real notification data.
+- Real calendar data.
+- Real staff task data.
+
+The current implementation uses static UI data so the screens can be demonstrated and reviewed before backend integration.
+
+## Verification
+
+The current implementation was verified with:
+
+```sh
+flutter analyze
+flutter test
+```
+
+Both commands pass.

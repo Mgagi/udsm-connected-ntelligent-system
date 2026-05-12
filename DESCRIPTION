@@ -1,21 +1,24 @@
-# UDSM Connected Intelligent System - Staff Mobile UI Code Description
+# UDSM Connected Intelligent System - Staff and Alumni Mobile UI Code Description
 
 ## Project Summary
 
-This Flutter project implements a mobile staff interface for the UDSM Connected Intelligent System. The current build is focused on staff users only. The app still shows role choices for Staff, Student, and Admin on the first screen, but only Staff login is active. Student and Admin buttons are intentionally disabled for now.
+This Flutter project implements a mobile interface for the UDSM Connected Intelligent System. The current build supports Staff and Alumni UI flows from the same welcome screen. Student and Admin buttons are still shown as future roles, but they are intentionally disabled for now.
 
-The app targets Android and iOS only. The Flutter web target was removed because the requested product is a mobile app, not a website. The UI is based on the PowerPoint prototype style: blue headers, UDSM branding, light grey page background, rounded white cards, small icon buttons, bottom navigation, and staff-focused dashboard content.
+The app targets Android and iOS only. The Flutter web target was removed because the requested product is a mobile app, not a website. The UI is based on the PowerPoint prototype style: blue headers, UDSM branding, light grey page background, rounded white cards, small icon buttons, and bottom navigation. Staff screens keep the existing staff dashboard style, while Alumni screens add a separate alumni-focused shell, dashboard, feeds, networking, jobs, mentorship, profile, emergency, map, AI assistant, and feedback flows.
 
 ## Current User Flow
 
 1. The app opens on a role-choice welcome screen.
-2. The user taps `Login as Staff`.
-3. The app opens the staff login screen.
-4. The user taps `Continue`.
-5. The app opens the staff home dashboard.
-6. The user can move between Home, Alerts, Services, Calendar, AI, and Map using the bottom navigation.
-7. The user can tap `Logout` from the bottom navigation.
-8. Logout returns the app to the role-choice welcome screen.
+2. The user can tap `Login as Staff` or `Login as Alumni`.
+3. Staff login opens the existing staff login screen, then the staff home dashboard.
+4. Staff users can move between Home, Alerts, Services, Calendar, AI, and Map using the staff bottom navigation.
+5. Staff logout is now placed inside the staff Profile screen, opened from the Profile shortcut on the staff dashboard.
+6. Alumni login opens the alumni SSO login screen.
+7. Alumni users can also open Alumni Registration, then Registration Pending, then Account Approved screens.
+8. After Alumni login, the Alumni dashboard opens and shows an automatic session timeout warning modal.
+9. Alumni users can move between Home, Updates, Events, Jobs, and Profile using the alumni bottom navigation.
+10. Alumni users can open the AI Assistant from the floating chatbot button placed above the bottom navigation bar.
+11. Logout returns the app to the role-choice welcome screen.
 
 This flow is currently simulated in local widget state. There is no backend authentication yet.
 
@@ -222,8 +225,9 @@ The card includes:
 - Title: `Welcome`
 - Instruction text: `Choose your account type to continue.`
 - Active button: `Login as Staff`
+- Active button: `Login as Alumni`
 - Disabled button: `Login as Student`
-- Helper text: `Student access is disabled in this build. Staff UI only.`
+- Helper text: `Student access is disabled in this build. Staff and Alumni UI are available.`
 - Disabled button: `Login as Admin`
 
 Student and Admin buttons use `onPressed: null`, which makes Flutter render them as disabled.
@@ -259,7 +263,6 @@ It receives:
 
 - `selectedIndex`: the currently selected bottom navigation index.
 - `onSelect`: callback for changing pages.
-- `onLogout`: callback for logging out.
 - `child`: the active page widget.
 
 Its layout is:
@@ -697,13 +700,12 @@ This widget is reused for filters, priorities, service chips, category tags, and
 
 ### `UcisBottomNav`
 
-This is the signed-in bottom navigation.
+This is the signed-in Staff bottom navigation.
 
 It receives:
 
 - `selectedIndex`
 - `onSelect`
-- `onLogout`
 
 Navigation items:
 
@@ -713,27 +715,481 @@ Navigation items:
 - Calendar
 - AI
 - Map
-- Logout
 
-The first six items call `onSelect(i)` to change `_page`. The Logout item calls `onLogout`, which resets `_page` to `-2` and returns to the role-choice screen.
+Each item calls `onSelect(i)` to change `_page`.
 
-The selected item is blue. Unselected items are muted grey. Logout is always red to show it is a session action.
+The selected item is blue. Unselected items are muted grey. Logout was removed from this bottom navigation and moved to the Staff Profile screen.
+
+### Staff Profile Logout
+
+The Staff dashboard now passes an `onOpenProfile` callback into `StaffHomeScreen`. The Profile quick action calls that callback and sets `_page` to `6`.
+
+When `_page == 6`, the app shows `StaffProfileScreen`. This screen displays staff account details and contains the red `Logout` button. Pressing it calls the shared `_logout()` method, which resets `_page` to `-2` and returns to the welcome screen.
+
+This keeps the staff bottom navigation focused on navigation only, while logout lives in the account/profile area.
+
+## `lib/alumni_screens.dart`
+
+This file contains the complete Alumni UI module. It was added as a separate file so the existing Staff UI in `screens.dart` remains readable and the Alumni UI can grow independently.
+
+The Alumni UI is still a local Flutter prototype. It uses static mock data, local integer page IDs, and callbacks instead of real Django API calls. The UI is ready to be connected later to SSO, Django REST API endpoints, MySQL-backed data, push notifications, and the Python AI layer.
+
+### Alumni Page Constants
+
+At the top of `alumni_screens.dart`, each Alumni screen has a constant page number:
+
+```dart
+const alumniHomePage = 100;
+const alumniUpdatesPage = 101;
+const alumniEventsPage = 102;
+const alumniJobsPage = 103;
+const alumniProfilePage = 104;
+...
+const alumniAssistantPage = 132;
+```
+
+The Staff UI uses small page numbers such as `0`, `1`, `2`, and so on. Alumni pages start at `100` so they do not collide with Staff pages.
+
+In `screens.dart`, this check decides whether the signed-in user is inside the Alumni UI:
+
+```dart
+_page >= alumniHomePage
+```
+
+If that condition is true, the app renders `AlumniShell`.
+
+### Alumni Login Flow
+
+`AlumniLoginScreen` is the Alumni SSO login screen. It receives three callbacks:
+
+- `onSignIn`: opens the Alumni dashboard.
+- `onRegister`: opens the Alumni registration form.
+- `onBack`: returns to the shared welcome screen.
+
+The screen includes:
+
+- UDSM-style header.
+- SSO email/student ID field.
+- Password field.
+- `Continue` button.
+- `Register as Alumni` button.
+- Security notice mentioning HTTPS/TLS, RBAC, login alerts, activity logging, and session timeout.
+
+There is no real authentication yet. Pressing `Continue` simulates successful SSO login.
+
+### Alumni Registration Flow
+
+`AlumniRegistrationScreen` represents the new alumni registration request form.
+
+It includes fields for:
+
+- Full name.
+- Student ID / matriculation number.
+- Graduation year.
+- Programme / department.
+- Current email address.
+- Current location / employer.
+- Profile photo upload button.
+
+Pressing `Submit for approval` moves to `AlumniStatusScreen.pending`.
+
+### Registration Pending and Approved Screens
+
+`AlumniStatusScreen` is a reusable status screen. It has two factory constructors:
+
+- `AlumniStatusScreen.pending(...)`
+- `AlumniStatusScreen.approved(...)`
+
+Both use the same layout but show different titles, descriptions, icons, and actions.
+
+This avoids duplicating nearly identical code for registration status pages.
+
+### `AlumniShell`
+
+`AlumniShell` is the main signed-in Alumni container. It receives:
+
+- `page`: the current alumni page number.
+- `onOpen`: callback for changing alumni pages.
+- `onLogout`: callback for returning to the welcome screen.
+
+It displays two main parts:
+
+1. `Expanded(child: _body)`: the active Alumni screen.
+2. `AlumniBottomNav(...)`: the Alumni five-tab bottom navigation.
+
+The `_body` getter uses a Dart `switch` expression to map each page constant to the correct screen widget.
+
+Examples:
+
+```dart
+alumniHomePage => AlumniDashboard(onOpen: onOpen)
+alumniUpdatesPage => AlumniUpdatesScreen(onOpen: onOpen)
+alumniEventsPage => AlumniEventsScreen(onOpen: onOpen)
+alumniJobsPage => AlumniJobsScreen(onOpen: onOpen)
+alumniProfilePage => AlumniProfileHub(onOpen: onOpen, onLogout: onLogout)
+```
+
+Detail screens are also routed here:
+
+- Announcement detail.
+- News detail.
+- Event detail.
+- Saved jobs.
+- Alumni directory.
+- Mentorship screens.
+- Feedback history.
+- Security notices.
+- AI assistant.
+
+### Alumni Bottom Navigation
+
+`AlumniBottomNav` implements the required five tabs:
+
+- Home
+- Updates
+- Events
+- Jobs
+- Profile
+
+The selected tab is blue and the inactive tabs are muted grey.
+
+The AI assistant is intentionally not a bottom tab. It is opened through the floating action button in `screens.dart`.
+
+### Alumni Floating AI Button
+
+The root `Scaffold` in `screens.dart` shows the AI floating action button only when `_page >= alumniHomePage`.
+
+```dart
+floatingActionButton: _page >= alumniHomePage && _page != alumniAssistantPage
+```
+
+The button opens `alumniAssistantPage`.
+
+It is wrapped in:
+
+```dart
+Padding(
+  padding: const EdgeInsets.only(bottom: 72),
+  child: FloatingActionButton(...)
+)
+```
+
+This raises the chatbot button above the Alumni bottom navigation so it does not cover the Profile tab.
+
+### Alumni Dashboard
+
+`AlumniDashboard` is the Alumni home screen. It uses `RefreshIndicator` so pull-to-refresh exists in the UI prototype.
+
+It includes:
+
+- Personalized welcome header.
+- Policy update notice.
+- Latest announcements card.
+- Administration and DARUSO announcements shown with distinct tags/colors.
+- Upcoming events shortcut.
+- Job highlights shortcut.
+- Mentorship shortcut.
+- Latest news shortcut.
+- Emergency shortcut.
+- AI Assistant shortcut.
+- Campus map shortcut.
+- Cached content/offline shortcut.
+
+All dashboard cards call `onOpen(pageNumber)` to navigate to the correct Alumni screen.
+
+### Updates, Announcements, and News
+
+`AlumniUpdatesScreen` combines announcements and news.
+
+It includes:
+
+- Search field.
+- Filter chips.
+- Administration announcements section.
+- DARUSO announcements section.
+- News feed section.
+
+Administration and DARUSO content are separated to satisfy the requirement that those streams remain visually distinct.
+
+`AlumniDetailScreen.announcement(...)` shows the announcement detail page. It includes:
+
+- Full title.
+- Posted-by/date subtitle.
+- Category badge.
+- Mock image/attachment area.
+- Body text.
+- Download attachment button.
+
+`AlumniDetailScreen.news(...)` shows the news article detail page with body text and share action.
+
+### Events and Almanac
+
+`AlumniEventsScreen` is a `StatefulWidget` because it stores whether the user is viewing events as a list or as a calendar.
+
+The local boolean is:
+
+```dart
+bool calendar = false;
+```
+
+`SegmentedButton<bool>` toggles between:
+
+- List view.
+- Calendar view.
+
+The screen includes:
+
+- Event category filters.
+- Alumni-specific highlighted events.
+- `My Events` button.
+- `Almanac` button.
+
+`AlumniDetailScreen.event(...)` shows event details with:
+
+- Date/time/location.
+- Description.
+- RSVP / Subscribe button.
+- Ask AI button.
+
+`AlumniListScreen.subscribed(...)` shows subscribed events and reminders.
+
+`AlumniListScreen.almanac(...)` shows a read-only academic calendar list.
+
+### Job Board
+
+`AlumniJobsScreen` implements the Alumni job board.
+
+It includes:
+
+- Job search field.
+- Industry/location/job-type filters.
+- Job cards with title, employer, location, and deadline.
+- Saved jobs button.
+
+`AlumniJobDetailScreen` shows:
+
+- Full job description.
+- Employer.
+- Location.
+- Deadline.
+- Apply / Visit link button.
+- Save job button.
+
+Jobs are shown as admin-posted content. Alumni can browse, save, and apply, but not create jobs.
+
+### Profile, Directory, and Networking
+
+`AlumniProfileHub` is the main Alumni profile tab.
+
+It includes:
+
+- Public profile shortcut.
+- Edit profile shortcut.
+- Notification preferences shortcut.
+- Policy notice shortcut.
+- Alumni directory.
+- Networking hub.
+- Mentorship.
+- Student organizations.
+- Feedback submission.
+- Login alert screen.
+- Suspicious activity screen.
+- Logout button.
+
+`AlumniPublicProfileScreen` shows the logged-in alumnus public-facing card with name, programme, year, current role, and bio.
+
+`AlumniEditProfileScreen` contains editable fields for:
+
+- Name.
+- Bio.
+- Current job title.
+- Employer.
+- Location.
+- Contact email.
+- LinkedIn profile.
+- Account status.
+
+`AlumniDirectoryScreen` provides search and filters for finding other alumni.
+
+`OtherAlumniProfileScreen` shows another alumnus profile with `Connect` and `Message` buttons.
+
+`AlumniNetworkingScreen` shows:
+
+- Pending/accepted connections.
+- Groups/communities.
+- A basic message thread.
+
+### Mentorship and Campus Life
+
+`AlumniMentorshipScreen` covers Alumni mentorship participation.
+
+It includes:
+
+- Become a mentor shortcut.
+- Mentorship connections shortcut.
+- Student mentorship request row.
+- Browse mentors row.
+
+`AlumniMentorFormScreen` contains:
+
+- Mentorship category chips.
+- Expertise field.
+- Availability field.
+- Mentor profile summary.
+- Submit mentor profile button.
+
+`AlumniMentorshipRequestScreen` shows a mock student request with Accept and Decline actions.
+
+`AlumniOrganizationsScreen` lists student organizations, categories, contact leads, and historical links such as "Former member".
+
+### Emergency Contacts
+
+`AlumniEmergencyScreen` shows view-only emergency contacts:
+
+- Campus Security.
+- Medical Centre.
+- Fire & Rescue.
+- Alumni Office.
+
+Each row is represented by `EmergencyContact`, which displays the contact role, phone number, availability, and a "Quick-call" tag.
+
+The `Get help from AI` button opens the Alumni AI assistant with emergency context implied by the screen.
+
+### Campus Map
+
+`AlumniMapScreen` provides a prototype campus map.
+
+It includes:
+
+- Search field.
+- Category filters.
+- Map preview area.
+- Location pins for Library, CoICT, and Health.
+- Get directions button.
+- Ask AI button.
+
+The current map is static UI. Later it can be connected to the UDSM Campus Map API.
+
+### AI Assistant
+
+`AlumniAssistantScreen` is the Alumni chatbot interface.
+
+It includes:
+
+- Header.
+- Intro bot message.
+- Suggested quick query chips:
+  - Find a location.
+  - Show upcoming events.
+  - Emergency contacts.
+  - Latest announcements.
+- Text input.
+- Send button.
+
+The screen is UI-only for now. Later it can connect to the Python AI layer.
+
+### Feedback
+
+`AlumniFeedbackScreen` includes:
+
+- Feedback type selector chips.
+- Message text area.
+- Screenshot attachment button.
+- Anonymous submission toggle.
+- Submit feedback button.
+
+After submission, the app opens `AlumniFeedbackConfirmationScreen`.
+
+`AlumniListScreen.feedback(...)` shows feedback history and response status.
+
+### Notification Preferences
+
+`AlumniPreferencesScreen` shows toggle rows for:
+
+- Announcements.
+- Events.
+- Jobs.
+- Mentorship requests.
+- News.
+- Alumni event notifications.
+
+These are static toggles in the prototype. Later they can write to a backend notification preference endpoint.
+
+### Security, Policy, and Offline Notices
+
+`AlumniNoticeScreen` is a reusable notice screen with factory constructors:
+
+- `loginAlert(...)`
+- `suspicious(...)`
+- `policy(...)`
+- `offline(...)`
+
+This keeps login alerts, suspicious activity warnings, policy notices, and offline/cached-content notices consistent.
+
+### Shared Alumni Helper Widgets
+
+The Alumni module defines several reusable UI widgets:
+
+- `AlumniScroll`: common header + scrollable body layout.
+- `AlumniHeader`: blue UDSM header with initials, title, subtitle, optional badge, and optional back button.
+- `UcisPanel`: white card container.
+- `SectionBlock`: titled card section.
+- `DashboardTile`: tappable dashboard card.
+- `CompactFeedItem`: reusable announcement/news/event/job row.
+- `JobPost`: job-specific wrapper around `CompactFeedItem`.
+- `FilterChips`: horizontal category filter row.
+- `BadgePill`: small rounded category/status badge.
+- `ActionPill`: compact shortcut chip.
+- `MenuAction`: profile menu row.
+- `NoticeLine`: yellow notice banner.
+- `CalendarPreview`: mock month grid.
+- `EmergencyContact`: emergency row.
+- `MapPin`: map marker widget.
+- `AlumniPerson`: alumni directory row.
+- `ConnectionRow`: networking/mentorship connection row.
+- `ChatBubble`: AI assistant message bubble.
+
+These helpers reduce repetition and make the Alumni UI easier to extend.
+
+### How Alumni Navigation Works
+
+The Alumni UI does not use Flutter named routes yet. It uses simple integer page constants and callbacks.
+
+For example:
+
+```dart
+ActionPill(
+  icon: Icons.map_outlined,
+  label: 'Campus map',
+  onTap: () => onOpen(alumniMapPage),
+)
+```
+
+When the user taps the chip:
+
+1. The callback sends `alumniMapPage` to `AlumniShell`.
+2. `screens.dart` stores that value in `_page`.
+3. Flutter rebuilds.
+4. `AlumniShell._body` sees `alumniMapPage`.
+5. The app displays `AlumniMapScreen`.
+
+This is simple and works well for a prototype. A production version can later migrate to named routes, `go_router`, or Navigator 2.0.
 
 ## `test/widget_test.dart`
 
-The widget test verifies the important staff flow.
+The widget test verifies both the Staff and Alumni entry flows.
 
 Test name:
 
 ```text
-staff can choose staff login and open the staff dashboard
+staff and alumni can sign in from the shared welcome screen
 ```
 
 The test performs these steps:
 
 1. Renders `UcisAdminApp`.
 2. Confirms the welcome screen exists.
-3. Confirms `Login as Staff` and `Login as Student` are visible.
+3. Confirms `Login as Staff`, `Login as Alumni`, and `Login as Student` are visible.
 4. Taps `Login as Staff`.
 5. Confirms `Staff Login` appears.
 6. Taps `Continue`.
@@ -741,16 +1197,28 @@ The test performs these steps:
    - `Dr. James Kalolo`
    - `Quick Access`
    - `My Tasks`
-8. Taps `Logout`.
-9. Confirms the app returns to `Login as Staff`.
+8. Taps `Profile`.
+9. Confirms `Staff account details` appears.
+10. Taps `Logout`.
+11. Confirms the app returns to `Login as Staff`.
+12. Taps `Login as Alumni`.
+13. Confirms `Alumni Login` and `Register as Alumni` appear.
+14. Taps `Continue`.
+15. Confirms the Alumni session timeout warning appears.
+16. Dismisses the warning.
+17. Confirms the Alumni dashboard appears by checking:
+    - `Welcome home`
+    - `Latest announcements`
 
-This test protects the main navigation, login, dashboard, and logout behavior from accidental breakage.
+This test protects the shared role entry screen, Staff login/dashboard/profile logout flow, and Alumni login/dashboard/session-warning flow from accidental breakage.
 
 ## Important Current Limitations
 
 This is still a UI prototype. The following parts are not connected to real services yet:
 
 - Staff authentication.
+- Alumni SSO authentication.
+- Alumni registration approval backend.
 - Student/Admin role flows.
 - ARIS/LMS/FYP links.
 - AI assistant backend.
@@ -758,6 +1226,9 @@ This is still a UI prototype. The following parts are not connected to real serv
 - Real notification data.
 - Real calendar data.
 - Real staff task data.
+- Real alumni directory, jobs, mentorship, and feedback data.
+- Push notification deep-link handling.
+- Real automatic session timeout enforcement.
 
 The current implementation uses static UI data so the screens can be demonstrated and reviewed before backend integration.
 

@@ -1,8 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:udsm_connected_intelligent_system/main.dart';
 
 void main() {
-  testWidgets('staff and alumni can sign in from the shared welcome screen', (tester) async {
+  testWidgets('staff and alumni can sign in from the shared welcome screen',
+      (tester) async {
     await tester.pumpWidget(const UcisAdminApp());
 
     expect(find.text('UDSM MOBILE\nAPPLICATION'), findsOneWidget);
@@ -19,14 +21,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Dr. James Kalolo'), findsOneWidget);
-    expect(find.text('Quick Access'), findsOneWidget);
-    expect(find.text('My Tasks'), findsOneWidget);
+    expect(find.text('Quick Actions'), findsOneWidget);
+    expect(find.text('Today\'s Tasks'), findsOneWidget);
 
-    await tester.tap(find.text('Profile'));
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -260));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Info').last);
     await tester.pumpAndSettle();
 
-    expect(find.text('Staff account details'), findsOneWidget);
+    expect(find.text('Staff account details and security'), findsOneWidget);
 
+    await tester.scrollUntilVisible(find.text('Logout'), 140);
     await tester.tap(find.text('Logout'));
     await tester.pumpAndSettle();
 
@@ -46,7 +51,7 @@ void main() {
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Welcome home'), findsOneWidget);
-    expect(find.text('Latest announcements'), findsOneWidget);
+    expect(find.textContaining('Hello, Asha'), findsOneWidget);
+    expect(find.text('Latest Announcements'), findsOneWidget);
   });
 }

@@ -95,7 +95,13 @@ class _UcisMobilePrototypeState extends State<UcisMobilePrototype> {
                                       0 => StaffHomeScreen(
                                           onOpenProfile: () =>
                                               setState(() => _page = 6),
-                                          onBackToLogin: _openStaffLogin),
+                                          onBackToLogin: _openStaffLogin,
+                                          onOpenMap: () =>
+                                              setState(() => _page = 5),
+                                          onOpenUpdates: () =>
+                                              setState(() => _page = 1),
+                                          onOpenAiHelp: () =>
+                                              setState(() => _page = 4)),
                                       1 => AnnouncementsScreen(
                                           onBack: () =>
                                               setState(() => _page = 0)),
@@ -118,23 +124,18 @@ class _UcisMobilePrototypeState extends State<UcisMobilePrototype> {
                                       _ => StaffHomeScreen(
                                           onOpenProfile: () =>
                                               setState(() => _page = 6),
-                                          onBackToLogin: _openStaffLogin),
+                                          onBackToLogin: _openStaffLogin,
+                                          onOpenMap: () =>
+                                              setState(() => _page = 5),
+                                          onOpenUpdates: () =>
+                                              setState(() => _page = 1),
+                                          onOpenAiHelp: () =>
+                                              setState(() => _page = 4)),
                                     },
                                   );
 
     return Scaffold(
       backgroundColor: ucisCanvas,
-      floatingActionButton: _page >= alumniHomePage &&
-              _page != alumniAssistantPage
-          ? Padding(
-              padding: const EdgeInsets.only(bottom: 72),
-              child: FloatingActionButton(
-                tooltip: 'Open AI assistant',
-                onPressed: () => setState(() => _page = alumniAssistantPage),
-                child: const Icon(Icons.smart_toy_outlined),
-              ),
-            )
-          : null,
       body: SafeArea(child: phone),
     );
   }
@@ -325,10 +326,18 @@ class PhoneShell extends StatelessWidget {
 
 class StaffHomeScreen extends StatelessWidget {
   const StaffHomeScreen(
-      {super.key, required this.onOpenProfile, required this.onBackToLogin});
+      {super.key,
+      required this.onOpenProfile,
+      required this.onBackToLogin,
+      required this.onOpenMap,
+      required this.onOpenUpdates,
+      required this.onOpenAiHelp});
 
   final VoidCallback onOpenProfile;
   final VoidCallback onBackToLogin;
+  final VoidCallback onOpenMap;
+  final VoidCallback onOpenUpdates;
+  final VoidCallback onOpenAiHelp;
 
   @override
   Widget build(BuildContext context) {
@@ -363,30 +372,21 @@ class StaffHomeScreen extends StatelessWidget {
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
           children: [
-            const QuickTile(
-                icon: Icons.fact_check_outlined,
-                title: 'Grading',
-                subtitle: 'Marks'),
-            const QuickTile(
+            QuickTile(
                 icon: Icons.map_outlined,
                 title: 'Map',
-                subtitle: 'Campus'),
-            const QuickTile(
+                subtitle: 'Campus',
+                onTap: onOpenMap),
+            QuickTile(
                 icon: Icons.campaign_outlined,
                 title: 'Updates',
-                subtitle: 'Latest'),
-            const QuickTile(
-                icon: Icons.notifications_active_outlined,
-                title: 'Alerts',
-                subtitle: 'Urgent'),
-            const QuickTile(
-                icon: Icons.calendar_month_outlined,
-                title: 'Calendar',
-                subtitle: 'Events'),
-            const QuickTile(
+                subtitle: 'Latest',
+                onTap: onOpenUpdates),
+            QuickTile(
                 icon: Icons.smart_toy_outlined,
                 title: 'AI Help',
-                subtitle: 'Ask'),
+                subtitle: 'Ask',
+                onTap: onOpenAiHelp),
           ],
         ),
         const SizedBox(height: 18),

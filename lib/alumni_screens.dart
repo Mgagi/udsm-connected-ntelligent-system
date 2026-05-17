@@ -394,21 +394,6 @@ class AlumniDashboard extends StatelessWidget {
             mainAxisSpacing: 8,
             children: [
               DashboardTile(
-                  icon: Icons.campaign_outlined,
-                  title: 'Updates',
-                  value: 'Latest',
-                  onTap: () => onOpen(alumniUpdatesPage)),
-              DashboardTile(
-                  icon: Icons.event_available_outlined,
-                  title: 'Events',
-                  value: '3 new',
-                  onTap: () => onOpen(alumniEventsPage)),
-              DashboardTile(
-                  icon: Icons.work_outline,
-                  title: 'Jobs',
-                  value: '12 posts',
-                  onTap: () => onOpen(alumniJobsPage)),
-              DashboardTile(
                   icon: Icons.volunteer_activism_outlined,
                   title: 'Mentor',
                   value: 'Request',
